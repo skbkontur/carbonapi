@@ -1,3 +1,5 @@
+go_import_path: github.com/go-graphite/carbonapi
+
 language: go
 dist: trusty
 

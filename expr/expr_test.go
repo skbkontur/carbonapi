@@ -3597,6 +3597,30 @@ func TestEvalMultipleReturns(t *testing.T) {
 		},
 		{
 			&expr{
+				target: "multiplySeriesWithWildcards",
+				etype:  etFunc,
+				args: []*expr{
+					{target: "metric1.foo.*.*"},
+					{val: 1, etype: etConst},
+					{val: 2, etype: etConst},
+				},
+			},
+			map[MetricRequest][]*MetricData{
+				{"metric1.foo.*.*", 0, 1}: {
+					makeResponse("metric1.foo.bar1.baz", []float64{1, 2, 3, 4, 5}, 1, now32),
+					makeResponse("metric1.foo.bar1.qux", []float64{6, 7, 8, 9, 10}, 1, now32),
+					makeResponse("metric1.foo.bar2.baz", []float64{11, 12, 13, 14, 15}, 1, now32),
+					makeResponse("metric1.foo.bar2.qux", []float64{7, 8, 9, 10, 11}, 1, now32),
+				},
+			},
+			"multiplySeriesWithWildcards",
+			map[string][]*MetricData{
+				"multiplySeriesWithWildcards(metric1.baz)": {makeResponse("multiplySeriesWithWildcards(metric1.baz)", []float64{11, 24, 39, 56, 75}, 1, now32)},
+				"multiplySeriesWithWildcards(metric1.qux)": {makeResponse("multiplySeriesWithWildcards(metric1.qux)", []float64{42, 56, 72, 90, 110}, 1, now32)},
+			},
+		},
+		{
+			&expr{
 				target: "averageSeriesWithWildcards",
 				etype:  etFunc,
 				args: []*expr{
