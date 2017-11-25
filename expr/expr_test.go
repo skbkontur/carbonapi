@@ -3608,15 +3608,16 @@ func TestEvalMultipleReturns(t *testing.T) {
 			map[MetricRequest][]*MetricData{
 				{"metric1.foo.*.*", 0, 1}: {
 					makeResponse("metric1.foo.bar1.baz", []float64{1, 2, 3, 4, 5}, 1, now32),
-					makeResponse("metric1.foo.bar1.qux", []float64{6, 7, 8, 9, 10}, 1, now32),
+					makeResponse("metric1.foo.bar1.qux", []float64{6, 0, 8, 9, 10}, 1, now32),
 					makeResponse("metric1.foo.bar2.baz", []float64{11, 12, 13, 14, 15}, 1, now32),
 					makeResponse("metric1.foo.bar2.qux", []float64{7, 8, 9, 10, 11}, 1, now32),
+					makeResponse("metric1.foo.bar3.baz", []float64{2, 2, 2, 2, 2}, 1, now32),
 				},
 			},
 			"multiplySeriesWithWildcards",
 			map[string][]*MetricData{
-				"multiplySeriesWithWildcards(metric1.baz)": {makeResponse("multiplySeriesWithWildcards(metric1.baz)", []float64{11, 24, 39, 56, 75}, 1, now32)},
-				"multiplySeriesWithWildcards(metric1.qux)": {makeResponse("multiplySeriesWithWildcards(metric1.qux)", []float64{42, 56, 72, 90, 110}, 1, now32)},
+				"multiplySeriesWithWildcards(metric1.baz)": {makeResponse("multiplySeriesWithWildcards(metric1.baz)", []float64{22, 48, 78, 112, 150}, 1, now32)},
+				"multiplySeriesWithWildcards(metric1.qux)": {makeResponse("multiplySeriesWithWildcards(metric1.qux)", []float64{42, 0, 72, 90, 110}, 1, now32)},
 			},
 		},
 		{

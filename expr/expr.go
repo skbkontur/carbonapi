@@ -1308,7 +1308,7 @@ func EvalExpr(e *expr, from, until int32, values map[MetricRequest][]*MetricData
 
 	case "multiplySeriesWithWildcards": // multiplySeriesWithWildcards(seriesList, *position)
 		/* TODO(dgryski): make sure the arrays are all the same 'size'
-		   (duplicated from sumSeriesWithWildcards because of similar logic but multiplication) */
+		   (modified sumSeriesWithWildcards because of similar logic but multiplication) */
 		args, err := getSeriesArg(e.args[0], from, until, values)
 		if err != nil {
 			return nil, err
@@ -1354,13 +1354,19 @@ func EvalExpr(e *expr, from, until int32, values map[MetricRequest][]*MetricData
 			r.IsAbsent = make([]bool, len(args[0].Values))
 
 			atLeastOne := make([]bool, len(args[0].Values))
+			hasVal := make([]bool, len(args[0].Values))
+
 			for _, arg := range args {
 				for i, v := range arg.Values {
 					if arg.IsAbsent[i] {
 						continue
 					}
+
 					atLeastOne[i] = true
-					r.Values[i] = r.Values[i] * v
+					if hasVal[i] == false {
+						r.Values[i] = v
+						hasVal[i] = true
+						} else {r.Values[i] *= v}
 				}
 			}
 
