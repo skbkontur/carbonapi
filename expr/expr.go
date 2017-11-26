@@ -1380,6 +1380,26 @@ func EvalExpr(e *expr, from, until int32, values map[MetricRequest][]*MetricData
 		}
 		return results, nil
 
+	case "stddevSeries": // stddevSeries(*seriesLists)
+		args, err := getSeriesArgsAndRemoveNonExisting(e, from, until, values)
+		if err != nil {
+			return nil, err
+		}
+
+		e.target = "stddevSeries"
+		return aggregateSeries(e, args, func(values []float64) float64 {
+			sum := 0.0
+			diffSqr := 0.0
+			for _, value := range values {
+				sum += value
+			}
+			average := sum / float64(len(values))
+			for _, value := range values {
+				diffSqr += (value - average) * (value - average)
+			}
+			return math.Sqrt(diffSqr / float64(len(values)))
+		})
+
 	case "ewma", "exponentialWeightedMovingAverage": // ewma(seriesList, alpha)
 		arg, err := getSeriesArg(e.args[0], from, until, values)
 		if err != nil {

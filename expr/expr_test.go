@@ -3622,6 +3622,26 @@ func TestEvalMultipleReturns(t *testing.T) {
 		},
 		{
 			&expr{
+				target: "stddevSeries",
+				etype:  etFunc,
+				args: []*expr{
+					{target: "metric1"},
+					{target: "metric2"},
+					{target: "metric3"}},
+				argString: "metric1,metric2,metric3",
+			},
+			map[MetricRequest][]*MetricData{
+				{"metric1", 0, 1}: {makeResponse("metric1", []float64{1, 2, 3, 4, 5}, 1, now32)},
+				{"metric2", 0, 1}: {makeResponse("metric2", []float64{2, 4, 6, 8, 10}, 1, now32)},
+				{"metric3", 0, 1}: {makeResponse("metric3", []float64{1, 2, 3, 4, 5}, 1, now32)},
+			},
+			"stddevSeries",
+			map[string][]*MetricData{
+				"stddevSeries(metric1,metric2,metric3)": {makeResponse("stddevSeries(metric1,metric2,metric3)", []float64{0.4714045207910317, 0.9428090415820634, 1.4142135623730951, 1.8856180831641267, 2.357022603955158}, 1, now32)},
+			},
+		},
+		{
+			&expr{
 				target: "averageSeriesWithWildcards",
 				etype:  etFunc,
 				args: []*expr{
