@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/JaderDias/movingmedian"
 	"github.com/dgryski/go-onlinestats"
@@ -284,13 +286,20 @@ func parseConst(s string) (float64, string, error) {
 	return v, s[i:], err
 }
 
+// RangeTables is an array of *unicode.RangeTable
+var RangeTables []*unicode.RangeTable
+
 func parseName(s string) (string, string) {
 
-	var i int
+	var (
+		braces, i, w int
+		r            rune
+	)
 
 FOR:
-	for braces := 0; i < len(s); i++ {
+	for braces, i, w = 0, 0, 0; i < len(s); i += w {
 
+		w = 1
 		if isNameChar(s[i]) {
 			continue
 		}
@@ -301,7 +310,6 @@ FOR:
 		case '}':
 			if braces == 0 {
 				break FOR
-
 			}
 			braces--
 		case ',':
@@ -309,6 +317,10 @@ FOR:
 				break FOR
 			}
 		default:
+			r, w = utf8.DecodeRuneInString(s[i:])
+			if unicode.In(r, RangeTables...) {
+				continue
+			}
 			break FOR
 		}
 
@@ -1024,10 +1036,14 @@ func EvalExpr(e *expr, from, until int32, values map[MetricRequest][]*MetricData
 
 	case "derivative": // derivative(seriesList)
 		return forEachSeriesDo(e, from, until, values, func(a *MetricData, r *MetricData) *MetricData {
-			prev := a.Values[0]
+			prev := math.NaN()
 			for i, v := range a.Values {
-				if i == 0 || a.IsAbsent[i] {
+				if a.IsAbsent[i] {
 					r.IsAbsent[i] = true
+					continue
+				} else if math.IsNaN(prev) {
+					r.IsAbsent[i] = true
+					prev = v
 					continue
 				}
 
@@ -1145,6 +1161,80 @@ func EvalExpr(e *expr, from, until int32, values map[MetricRequest][]*MetricData
 			}
 		}
 		return []*MetricData{&r}, err
+	case "reduceSeries", "reduce": //reduceSeries(seriesLists, reduceFunction, reduceNode, *reduceMatchers)
+		const matchersStartIndex = 3
+
+		if len(e.args) < matchersStartIndex + 1 {
+			return nil, ErrMissingArgument
+		}
+
+		seriesList, err := getSeriesArg(e.args[0], from, until, values)
+		if err != nil {
+			return nil, err
+		}
+
+		reduceFunction, err := getStringArg(e, 1)
+		if err != nil {
+			return nil, err
+		}
+
+		reduceNode, err := getIntArg(e, 2)
+		if err != nil {
+			return nil, err
+		}
+
+		argsCount := len(e.args)
+		matchersCount := argsCount - matchersStartIndex
+		reduceMatchers := make([]string, matchersCount)
+		for i := matchersStartIndex; i < argsCount; i++ {
+			reduceMatcher, err := getStringArg(e, i)
+			if err != nil {
+				return nil, err
+			}
+
+			reduceMatchers[i - matchersStartIndex] = reduceMatcher
+		}
+
+		var results []*MetricData
+
+		for _, series := range seriesList {
+			metric := extractMetric(series.Name)
+			nodes := strings.Split(metric, ".")
+
+			reducedNodes := make([]*expr, len(reduceMatchers))
+			for i, reduceMatcher := range reduceMatchers {
+				nodes[reduceNode] = reduceMatcher
+				reducedNodes[i] = &expr{target:strings.Join(nodes, ".")}
+			}
+
+			nodes[reduceNode] = "reduce." + reduceFunction
+			aliasName := strings.Join(nodes, ".")
+
+			r, err := EvalExpr(&expr {
+				target: "alias",
+				etype:  etFunc,
+				args: []*expr{
+					{
+						target: reduceFunction,
+						etype: etFunc,
+						args: reducedNodes,
+					},
+					{
+						valStr: aliasName,
+						etype: etString,
+					},
+				},
+			}, from, until, values)
+
+			if (err != nil) {
+				return nil, err
+			}
+
+			results = append(results, r...)
+		}
+
+		return results, nil
+
 
 	case "divideSeries": // divideSeries(dividendSeriesList, divisorSeriesList)
 		if len(e.args) < 1 {
@@ -1308,7 +1398,7 @@ func EvalExpr(e *expr, from, until int32, values map[MetricRequest][]*MetricData
 
 	case "multiplySeriesWithWildcards": // multiplySeriesWithWildcards(seriesList, *position)
 		/* TODO(dgryski): make sure the arrays are all the same 'size'
-		   (modified sumSeriesWithWildcards because of similar logic but multiplication) */
+		   (duplicated from sumSeriesWithWildcards because of similar logic but multiplication) */
 		args, err := getSeriesArg(e.args[0], from, until, values)
 		if err != nil {
 			return nil, err
@@ -1366,7 +1456,9 @@ func EvalExpr(e *expr, from, until int32, values map[MetricRequest][]*MetricData
 					if hasVal[i] == false {
 						r.Values[i] = v
 						hasVal[i] = true
-						} else {r.Values[i] *= v}
+					} else {
+						r.Values[i] *= v
+					}
 				}
 			}
 
@@ -1452,7 +1544,7 @@ func EvalExpr(e *expr, from, until int32, values map[MetricRequest][]*MetricData
 		if seriesList != nil && len(seriesList) > 0 {
 			return seriesList, nil
 		}
-		return  fallback, nil
+		return fallback, nil
 
 	case "exclude": // exclude(seriesList, pattern)
 		arg, err := getSeriesArg(e.args[0], from, until, values)
@@ -2170,6 +2262,47 @@ func EvalExpr(e *expr, from, until int32, values map[MetricRequest][]*MetricData
 			results = append(results, &r)
 		}
 		return results, nil
+
+	case "mapSeries", "map": // mapSeries(seriesList, *mapNodes)
+		args, err := getSeriesArg(e.args[0], from, until, values)
+		if err != nil {
+			return nil, err
+		}
+
+		var fields []int
+
+		fields, err = getIntArgs(e, 1)
+		if err != nil {
+			return nil, err
+		}
+
+		var results []*MetricData
+
+		groups := make(map[string][]*MetricData)
+		var nodeList []string
+
+		for _, a := range args {
+
+			metric := extractMetric(a.Name)
+			nodes := strings.Split(metric, ".")
+			nodeKey := make([]string, 0, len(fields))
+			for _, f := range fields {
+				nodeKey = append(nodeKey, nodes[f])
+			}
+			node := strings.Join(nodeKey, ".")
+			if len(groups[node]) == 0 {
+				nodeList = append(nodeList, node)
+			}
+
+			groups[node] = append(groups[node], a)
+		}
+
+		for _, group := range groups {
+			results = append(results, group...)
+		}
+
+		return results, nil
+
 
 	case "maxSeries": // maxSeries(*seriesLists)
 		args, err := getSeriesArgsAndRemoveNonExisting(e, from, until, values)
@@ -3194,7 +3327,7 @@ func EvalExpr(e *expr, from, until int32, values map[MetricRequest][]*MetricData
 		if err != nil {
 			return nil, err
 		}
-		if(len(args) == 0) {
+		if len(args) == 0 {
 			return nil, nil
 		}
 
@@ -4210,29 +4343,50 @@ func alignToBucketSize(start, stop, bucketSize int32) (int32, int32) {
 	return start, newStop
 }
 
-func extractMetric(m string) string {
+func extractMetric(s string) string {
 
-	// search for a metric name in `m'
-	// metric name is defined to be a series of name characters terminated by a comma
+	// search for a metric name in 's'
+	// metric name is defined to be a series of name characters terminated by a ',' or ')'
+	// work sample: bla(bla{bl,a}b[la,b]la) => bla{bl,a}b[la
 
-	start := 0
-	end := 0
-	curlyBraces := 0
-	for end < len(m) {
-		if m[end] == '{' {
-			curlyBraces++
-		} else if m[end] == '}' {
-			curlyBraces--
-		} else if m[end] == ')' || (m[end] == ',' && curlyBraces == 0) {
-			return m[start:end]
-		} else if !(isNameChar(m[end]) || m[end] == ',') {
-			start = end + 1
+	var (
+		start, braces, i, w int
+		r                   rune
+	)
+
+FOR:
+	for braces, i, w = 0, 0, 0; i < len(s); i += w {
+
+		w = 1
+		if isNameChar(s[i]) {
+			continue
 		}
 
-		end++
+		switch s[i] {
+		case '{':
+			braces++
+		case '}':
+			if braces == 0 {
+				break FOR
+			}
+			braces--
+		case ',':
+			if braces == 0 {
+				break FOR
+			}
+		case ')':
+			break FOR
+		default:
+			r, w = utf8.DecodeRuneInString(s[i:])
+			if unicode.In(r, RangeTables...) {
+				continue
+			}
+			start = i + 1
+		}
+
 	}
 
-	return m[start:end]
+	return s[start:i]
 }
 
 func contains(a []int, i int) bool {
