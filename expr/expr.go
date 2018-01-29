@@ -1197,20 +1197,35 @@ func EvalExpr(e *expr, from, until int32, values map[MetricRequest][]*MetricData
 
 		var results []*MetricData
 
+		reduceGroups := make(map[string]map[string]*MetricData)
+		reducedValues := values
+		var aliasNames []string
+
 		for _, series := range seriesList {
 			metric := extractMetric(series.Name)
 			nodes := strings.Split(metric, ".")
+			reduceNodeKey := nodes[reduceNode]
+			nodes[reduceNode] = "reduce." + reduceFunction
+			aliasName := strings.Join(nodes, ".")
+			_, exist := reduceGroups[aliasName]
+			if !exist {
+				reduceGroups[aliasName] = make(map[string]*MetricData)
+				aliasNames = append(aliasNames, aliasName)
+			}
+
+			reduceGroups[aliasName][reduceNodeKey] = series
+			valueKey := MetricRequest{series.Name, from, until}
+			reducedValues[valueKey] = append(reducedValues[valueKey], series)
+		}
+
+		for _, aliasName := range aliasNames {
 
 			reducedNodes := make([]*expr, len(reduceMatchers))
 			for i, reduceMatcher := range reduceMatchers {
-				nodes[reduceNode] = reduceMatcher
-				reducedNodes[i] = &expr{target:strings.Join(nodes, ".")}
+				reducedNodes[i] = &expr{target:reduceGroups[aliasName][reduceMatcher].Name}
 			}
 
-			nodes[reduceNode] = "reduce." + reduceFunction
-			aliasName := strings.Join(nodes, ".")
-
-			r, err := EvalExpr(&expr {
+			result, err := EvalExpr(&expr {
 				target: "alias",
 				etype:  etFunc,
 				args: []*expr{
@@ -1224,13 +1239,13 @@ func EvalExpr(e *expr, from, until int32, values map[MetricRequest][]*MetricData
 						etype: etString,
 					},
 				},
-			}, from, until, values)
+			}, from, until, reducedValues)
 
-			if (err != nil) {
+			if err != nil {
 				return nil, err
 			}
 
-			results = append(results, r...)
+			results = append(results, result...)
 		}
 
 		return results, nil
@@ -2297,8 +2312,8 @@ func EvalExpr(e *expr, from, until int32, values map[MetricRequest][]*MetricData
 			groups[node] = append(groups[node], a)
 		}
 
-		for _, group := range groups {
-			results = append(results, group...)
+		for _, node := range nodeList {
+			results = append(results, groups[node]...)
 		}
 
 		return results, nil
