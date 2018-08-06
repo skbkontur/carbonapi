@@ -42,7 +42,7 @@ fpm -s dir -t rpm -n carbonapi -v ${VERSION} -C ${TMPDIR} \
     --iteration ${RELEASE} \
     -p carbonapi-VERSION-ITERATION.ARCH.rpm \
     -d "cairo" \
-    --after-install contrib/fpm/systemd-reload.sh \
+    --after-install contrib/carbonapi/fpm/systemd-reload.sh \
     --description "carbonapi: replacement graphite API server" \
     --license BSD-2 \
     --url "https://github.com/go-graphite/" \
