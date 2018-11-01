@@ -158,6 +158,11 @@ func (c *HttpQuery) DoQuery(ctx context.Context, uri string, r types.Request) (*
 			}
 			continue
 		}
+		if res == nil {
+			c.logger.Error("empty result",
+				zap.Error(types.ErrNoResponseFetched),
+			)
+		}
 
 		return res, nil
 	}
