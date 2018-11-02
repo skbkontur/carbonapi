@@ -151,8 +151,7 @@ func (c *ClientProtoV2Group) Fetch(ctx context.Context, request *protov3.MultiFe
 		}
 		if res == nil {
 			// On heavy load may be empty responce (on timeout)
-			err.Add(types.ErrMaxTriesExceeded)
-			return nil, stats, err
+			return &r, stats, nil
 		}
 
 		var metrics protov2.MultiFetchResponse
