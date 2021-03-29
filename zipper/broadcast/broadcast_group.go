@@ -13,6 +13,8 @@ import (
 
 	"github.com/go-graphite/carbonapi/limiter"
 	"github.com/go-graphite/carbonapi/pathcache"
+	utilctx "github.com/go-graphite/carbonapi/util/ctx"
+	"github.com/go-graphite/carbonapi/zipper/helper"
 	"github.com/go-graphite/carbonapi/zipper/types"
 
 	"go.uber.org/zap"
@@ -424,7 +426,7 @@ func (bg *BroadcastGroup) Fetch(ctx context.Context, request *protov3.MultiFetch
 	for i := range request.Metrics {
 		requestNames = append(requestNames, request.Metrics[i].Name)
 	}
-	logger := bg.logger.With(zap.String("type", "fetch"), zap.Strings("request", requestNames))
+	logger := bg.logger.With(zap.String("type", "fetch"), zap.Strings("request", requestNames), zap.String("context_uuid", utilctx.GetUUID(ctx)))
 	logger.Debug("will try to fetch data")
 
 	backends := bg.filterServersByTLD(requestNames, bg.Children())
@@ -448,11 +450,13 @@ func (bg *BroadcastGroup) Fetch(ctx context.Context, request *protov3.MultiFetch
 	if len(result.Response.Metrics) == 0 {
 		nonNotFoundErrors := types.ReturnNonNotFoundError(result.Err)
 		if nonNotFoundErrors != nil {
-			err := types.ErrFailedToFetch.WithHTTPCode(500)
+			code, _ := helper.MergeHttpErrors(result.Err)
+			err := types.ErrFailedToFetch.WithHTTPCode(code)
 			for _, e := range nonNotFoundErrors {
 				err = err.WithCause(e)
 			}
-			logger.Debug("non-404 errors while fetching data from backends",
+			logger.Debug("errors while fetching data from backends",
+				zap.Int("httpCode", code),
 				zap.Any("errors", result.Err),
 			)
 			return nil, result.Stats, err

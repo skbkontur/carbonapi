@@ -31,6 +31,7 @@ import (
 	util "github.com/go-graphite/carbonapi/util/ctx"
 	"github.com/go-graphite/carbonapi/zipper"
 	zipperConfig "github.com/go-graphite/carbonapi/zipper/config"
+	"github.com/go-graphite/carbonapi/zipper/helper"
 	"github.com/go-graphite/carbonapi/zipper/types"
 
 	pickle "github.com/lomik/og-rek"
@@ -177,10 +178,12 @@ func findHandler(w http.ResponseWriter, req *http.Request) {
 	uuid := uuid.NewV4()
 	ctx := req.Context()
 	ctx = util.SetUUID(ctx, uuid.String())
+	parentUUID := helper.ParentUuid(req)
 	logger := zapwriter.Logger("find").With(
 		zap.String("handler", "find"),
 		zap.String("carbonzipper_uuid", uuid.String()),
 		zap.String("carbonapi_uuid", util.GetUUID(ctx)),
+		zap.String("parent_uuid", parentUUID),
 	)
 	logger.Debug("got find request",
 		zap.String("request", req.URL.RequestURI()),
@@ -197,6 +200,7 @@ func findHandler(w http.ResponseWriter, req *http.Request) {
 		zap.String("target", originalQuery),
 		zap.String("carbonzipper_uuid", uuid.String()),
 		zap.String("carbonapi_uuid", util.GetUUID(ctx)),
+		zap.String("parent_uuid", parentUUID),
 	)
 
 	metrics, stats, err := config.zipper.FindProtoV2(ctx, []string{originalQuery})
@@ -286,11 +290,13 @@ func renderHandler(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 
 	ctx = util.SetUUID(ctx, uuid.String())
+	parentUUID := helper.ParentUuid(req)
 	logger := zapwriter.Logger("render").With(
 		zap.Int("memory_usage_bytes", memoryUsage),
 		zap.String("handler", "render"),
 		zap.String("carbonzipper_uuid", uuid.String()),
 		zap.String("carbonapi_uuid", util.GetUUID(ctx)),
+		zap.String("parent_uuid", parentUUID),
 	)
 
 	logger.Debug("got render request",
@@ -303,6 +309,7 @@ func renderHandler(w http.ResponseWriter, req *http.Request) {
 		zap.String("handler", "render"),
 		zap.String("carbonzipper_uuid", uuid.String()),
 		zap.String("carbonapi_uuid", util.GetUUID(ctx)),
+		zap.String("parent_uuid", parentUUID),
 	)
 
 	err := req.ParseForm()
@@ -444,10 +451,12 @@ func infoHandler(w http.ResponseWriter, req *http.Request) {
 	uuid := uuid.NewV4()
 	ctx := req.Context()
 	ctx = util.SetUUID(ctx, uuid.String())
+	parentUUID := helper.ParentUuid(req)
 	logger := zapwriter.Logger("info").With(
 		zap.String("handler", "info"),
 		zap.String("carbonzipper_uuid", uuid.String()),
 		zap.String("carbonapi_uuid", util.GetUUID(ctx)),
+		zap.String("parent_uuid", parentUUID),
 	)
 
 	logger.Debug("request",
@@ -460,6 +469,7 @@ func infoHandler(w http.ResponseWriter, req *http.Request) {
 		zap.String("handler", "info"),
 		zap.String("carbonzipper_uuid", uuid.String()),
 		zap.String("carbonapi_uuid", util.GetUUID(ctx)),
+		zap.String("parent_uuid", parentUUID),
 	)
 	err := req.ParseForm()
 	if err != nil {

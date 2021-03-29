@@ -13,6 +13,7 @@ import (
 	"github.com/go-graphite/carbonapi/carbonapipb"
 	"github.com/go-graphite/carbonapi/cmd/carbonapi/config"
 	utilctx "github.com/go-graphite/carbonapi/util/ctx"
+	"github.com/go-graphite/carbonapi/zipper/helper"
 	"github.com/go-graphite/carbonapi/zipper/types"
 	"github.com/lomik/zapwriter"
 	"go.uber.org/zap"
@@ -27,8 +28,11 @@ func tagHandler(w http.ResponseWriter, r *http.Request) {
 	requestHeaders := utilctx.GetLogHeaders(ctx)
 	username, _, _ := r.BasicAuth()
 
+	parentUUID := helper.ParentUuid(r)
+
 	logger := zapwriter.Logger("tag").With(
 		zap.String("carbonapi_uuid", uuid.String()),
+		zap.String("parent_uuid", parentUUID),
 		zap.String("username", username),
 		zap.Any("request_headers", requestHeaders),
 	)
@@ -40,6 +44,7 @@ func tagHandler(w http.ResponseWriter, r *http.Request) {
 		Handler:        "tags",
 		Username:       username,
 		CarbonapiUUID:  uuid.String(),
+		ParentUUID:     parentUUID,
 		URL:            r.URL.Path,
 		PeerIP:         srcIP,
 		PeerPort:       srcPort,

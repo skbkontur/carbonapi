@@ -12,6 +12,7 @@ import (
 	"github.com/go-graphite/carbonapi/carbonapipb"
 	"github.com/go-graphite/carbonapi/cmd/carbonapi/config"
 	utilctx "github.com/go-graphite/carbonapi/util/ctx"
+	"github.com/go-graphite/carbonapi/zipper/helper"
 
 	"github.com/lomik/zapwriter"
 )
@@ -28,11 +29,14 @@ func infoHandler(w http.ResponseWriter, r *http.Request) {
 
 	requestHeaders := utilctx.GetLogHeaders(ctx)
 
+	parentUUID := helper.ParentUuid(r)
+
 	accessLogger := zapwriter.Logger("access")
 	var accessLogDetails = carbonapipb.AccessLogDetails{
 		Handler:        "info",
 		Username:       username,
 		CarbonapiUUID:  uuid.String(),
+		ParentUUID:     parentUUID,
 		URL:            r.URL.RequestURI(),
 		PeerIP:         srcIP,
 		PeerPort:       srcPort,

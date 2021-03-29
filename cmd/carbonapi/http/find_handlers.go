@@ -16,6 +16,7 @@ import (
 	"github.com/go-graphite/carbonapi/date"
 	"github.com/go-graphite/carbonapi/intervalset"
 	utilctx "github.com/go-graphite/carbonapi/util/ctx"
+	"github.com/go-graphite/carbonapi/zipper/helper"
 	pbv2 "github.com/go-graphite/protocol/carbonapi_v2_pb"
 	pbv3 "github.com/go-graphite/protocol/carbonapi_v3_pb"
 	pickle "github.com/lomik/og-rek"
@@ -192,11 +193,14 @@ func findHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.Form["query"]
 	srcIP, srcPort := splitRemoteAddr(r.RemoteAddr)
 
-	accessLogger := zapwriter.Logger("access")
+	parentUUID := helper.ParentUuid(r)
+
+	accessLogger := zapwriter.Logger("find")
 	var accessLogDetails = carbonapipb.AccessLogDetails{
 		Handler:        "find",
 		Username:       username,
 		CarbonapiUUID:  uid.String(),
+		ParentUUID:     parentUUID,
 		URL:            r.URL.RequestURI(),
 		PeerIP:         srcIP,
 		PeerPort:       srcPort,

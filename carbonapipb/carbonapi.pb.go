@@ -3,6 +3,7 @@ package carbonapipb
 type AccessLogDetails struct {
 	Handler                       string            `json:"handler,omitempty"`
 	CarbonapiUUID                 string            `json:"carbonapi_uuid,omitempty"`
+	ParentUUID                    string            `json:"parent_uuid,omitempty"`
 	Username                      string            `json:"username,omitempty"`
 	URL                           string            `json:"url,omitempty"`
 	PeerIP                        string            `json:"peer_ip,omitempty"`
