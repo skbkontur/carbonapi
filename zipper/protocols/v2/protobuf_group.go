@@ -426,7 +426,7 @@ func (c *ClientProtoV2Group) ProbeTLDs(ctx context.Context) ([]string, merry.Err
 	}
 
 	logger.Debug("will return data",
-		zap.Strings("tlds", tlds),
+		zap.Int("tlds", len(tlds)),
 	)
 
 	return tlds, nil

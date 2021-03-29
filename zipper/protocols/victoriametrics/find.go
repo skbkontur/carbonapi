@@ -132,7 +132,7 @@ func (c *VictoriaMetricsGroup) ProbeTLDs(ctx context.Context) ([]string, merry.E
 	}
 
 	logger.Debug("will return data",
-		zap.Strings("tlds", tlds),
+		zap.Int("tlds", len(tlds)),
 	)
 
 	return tlds, nil
