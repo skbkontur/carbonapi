@@ -26,6 +26,7 @@ type Config struct {
 
 	ExpireDelaySec       int32
 	TLDCacheDisabled     bool `mapstructure:"tldCacheDisabled"`
+	TLDQueryNonExist     bool `mapstructure:"tldQueryNonExist"`
 	InternalRoutingCache time.Duration
 	Timeouts             types.Timeouts
 	KeepAliveInterval    time.Duration `mapstructure:"keepAliveInterval"`
@@ -80,6 +81,7 @@ func SanitizeConfig(logger *zap.Logger, oldConfig Config) *Config {
 
 		ExpireDelaySec:       oldConfig.ExpireDelaySec,
 		TLDCacheDisabled:     oldConfig.TLDCacheDisabled,
+		TLDQueryNonExist:     oldConfig.TLDQueryNonExist,
 		InternalRoutingCache: oldConfig.InternalRoutingCache,
 		Timeouts:             oldConfig.Timeouts,
 		KeepAliveInterval:    oldConfig.KeepAliveInterval,
@@ -138,6 +140,7 @@ func SanitizeConfig(logger *zap.Logger, oldConfig Config) *Config {
 					ConcurrencyLimit:          &newConfig.ConcurrencyLimitPerServer,
 					DoMultipleRequestsIfSplit: true,
 					KeepAliveInterval:         &newConfig.KeepAliveInterval,
+					TLDQueryNonExist:          &newConfig.TLDQueryNonExist,
 					MaxIdleConnsPerHost:       &newConfig.MaxIdleConnsPerHost,
 					MaxTries:                  &newConfig.MaxTries,
 					MaxBatchSize:              newConfig.MaxBatchSize,
@@ -147,6 +150,7 @@ func SanitizeConfig(logger *zap.Logger, oldConfig Config) *Config {
 			ConcurrencyLimitPerServer: newConfig.ConcurrencyLimitPerServer,
 			Timeouts:                  newConfig.Timeouts,
 			KeepAliveInterval:         newConfig.KeepAliveInterval,
+			TLDQueryNonExist:          newConfig.TLDQueryNonExist,
 			MaxTries:                  newConfig.MaxTries,
 			MaxBatchSize:              newConfig.MaxBatchSize,
 		}
@@ -183,6 +187,10 @@ func SanitizeConfig(logger *zap.Logger, oldConfig Config) *Config {
 			newConfig.CarbonSearchV2.Backends[i].MaxBatchSize = newConfig.CarbonSearchV2.MaxBatchSize
 		}
 	}
+
+	/* set in BackendsV2 */
+	newConfig.BackendsV2.TLDQueryNonExist = newConfig.TLDQueryNonExist
+	newConfig.BackendsV2.KeepAliveInterval = newConfig.KeepAliveInterval
 
 	newConfig.isSanitized = true
 	return newConfig

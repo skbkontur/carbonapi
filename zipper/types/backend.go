@@ -10,6 +10,7 @@ type BackendsV2 struct {
 	ConcurrencyLimitPerServer int           `mapstructure:"concurrencyLimit"`
 	Timeouts                  Timeouts      `mapstructure:"timeouts"`
 	KeepAliveInterval         time.Duration `mapstructure:"keepAliveInterval"`
+	TLDQueryNonExist          bool          `mapstructure:"tldQueryNonExist"`
 	MaxTries                  int           `mapstructure:"maxTries"`
 	MaxBatchSize              *int          `mapstructure:"maxBatchSize"`
 }
@@ -22,6 +23,7 @@ type BackendV2 struct {
 	Timeouts                  *Timeouts              `mapstructure:"timeouts"`
 	ConcurrencyLimit          *int                   `mapstructure:"concurrencyLimit"`
 	KeepAliveInterval         *time.Duration         `mapstructure:"keepAliveInterval"`
+	TLDQueryNonExist          *bool                  `mapstructure:"tldQueryNonExist"`
 	MaxIdleConnsPerHost       *int                   `mapstructure:"maxIdleConnsPerHost"`
 	MaxTries                  *int                   `mapstructure:"maxTries"`
 	MaxBatchSize              *int                   `mapstructure:"maxBatchSize"`

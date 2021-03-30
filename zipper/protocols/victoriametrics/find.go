@@ -111,8 +111,16 @@ func (c *VictoriaMetricsGroup) Find(ctx context.Context, request *protov3.MultiG
 
 func (c *VictoriaMetricsGroup) ProbeTLDs(ctx context.Context) ([]string, merry.Error) {
 	logger := c.logger.With(zap.String("function", "prober"))
-	req := &protov3.MultiGlobRequest{
-		Metrics: []string{"*"},
+
+	var req *protov3.MultiGlobRequest
+	if c.tldQueryNonExist {
+		req = &protov3.MultiGlobRequest{
+			Metrics: []string{"NonExistingTarget"},
+		}
+	} else {
+		req = &protov3.MultiGlobRequest{
+			Metrics: []string{"*"},
+		}
 	}
 
 	logger.Debug("doing request",

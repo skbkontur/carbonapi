@@ -52,6 +52,8 @@ type ClientProtoV2Group struct {
 	maxTries             int
 	maxMetricsPerRequest int
 
+	tldQueryNonExist bool
+
 	httpQuery *helper.HttpQuery
 }
 
@@ -59,7 +61,7 @@ func (c *ClientProtoV2Group) Children() []types.BackendServer {
 	return []types.BackendServer{c}
 }
 
-func NewWithLimiter(logger *zap.Logger, config types.BackendV2, tldCacheDisabled bool, l limiter.ServerLimiter) (types.BackendServer, merry.Error) {
+func NewWithLimiter(logger *zap.Logger, config types.BackendV2, tldCacheDisabled bool, tldQueryNonExist bool, l limiter.ServerLimiter) (types.BackendServer, merry.Error) {
 	logger = logger.With(zap.String("type", "protoV2Group"), zap.String("name", config.GroupName))
 
 	httpClient := &http.Client{
@@ -80,6 +82,7 @@ func NewWithLimiter(logger *zap.Logger, config types.BackendV2, tldCacheDisabled
 		timeout:              *config.Timeouts,
 		maxTries:             *config.MaxTries,
 		maxMetricsPerRequest: *config.MaxBatchSize,
+		tldQueryNonExist:     tldQueryNonExist,
 
 		client:  httpClient,
 		limiter: l,
@@ -90,7 +93,7 @@ func NewWithLimiter(logger *zap.Logger, config types.BackendV2, tldCacheDisabled
 	return c, nil
 }
 
-func New(logger *zap.Logger, config types.BackendV2, tldCacheDisabled bool) (types.BackendServer, merry.Error) {
+func New(logger *zap.Logger, config types.BackendV2, tldCacheDisabled bool, tldQueryNonExist bool) (types.BackendServer, merry.Error) {
 	if config.ConcurrencyLimit == nil {
 		return nil, types.ErrConcurrencyLimitNotSet
 	}
@@ -99,7 +102,7 @@ func New(logger *zap.Logger, config types.BackendV2, tldCacheDisabled bool) (typ
 	}
 	limiter := limiter.NewServerLimiter(config.Servers, *config.ConcurrencyLimit)
 
-	return NewWithLimiter(logger, config, tldCacheDisabled, limiter)
+	return NewWithLimiter(logger, config, tldCacheDisabled, tldQueryNonExist, limiter)
 }
 
 func (c ClientProtoV2Group) MaxMetricsPerRequest() int {
@@ -405,8 +408,16 @@ func (c *ClientProtoV2Group) Stats(ctx context.Context) (*protov3.MetricDetailsR
 
 func (c *ClientProtoV2Group) ProbeTLDs(ctx context.Context) ([]string, merry.Error) {
 	logger := c.logger.With(zap.String("function", "prober"))
-	req := &protov3.MultiGlobRequest{
-		Metrics: []string{"*"},
+
+	var req *protov3.MultiGlobRequest
+	if c.tldQueryNonExist {
+		req = &protov3.MultiGlobRequest{
+			Metrics: []string{"NonExistingTarget"},
+		}
+	} else {
+		req = &protov3.MultiGlobRequest{
+			Metrics: []string{"*"},
+		}
 	}
 
 	logger.Debug("doing request",

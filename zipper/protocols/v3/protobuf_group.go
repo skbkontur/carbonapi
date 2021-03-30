@@ -46,6 +46,8 @@ type ClientProtoV3Group struct {
 	maxTries             int
 	maxMetricsPerRequest int
 
+	tldQueryNonExist bool
+
 	httpQuery *helper.HttpQuery
 }
 
@@ -53,7 +55,7 @@ func (c *ClientProtoV3Group) Children() []types.BackendServer {
 	return []types.BackendServer{c}
 }
 
-func New(logger *zap.Logger, config types.BackendV2, tldCacheDisabled bool) (types.BackendServer, merry.Error) {
+func New(logger *zap.Logger, config types.BackendV2, tldCacheDisabled bool, tldQueryNonExist bool) (types.BackendServer, merry.Error) {
 	if config.ConcurrencyLimit == nil {
 		return nil, types.ErrConcurrencyLimitNotSet
 	}
@@ -62,10 +64,10 @@ func New(logger *zap.Logger, config types.BackendV2, tldCacheDisabled bool) (typ
 	}
 	l := limiter.NewServerLimiter(config.Servers, *config.ConcurrencyLimit)
 
-	return NewWithLimiter(logger, config, tldCacheDisabled, l)
+	return NewWithLimiter(logger, config, tldCacheDisabled, tldQueryNonExist, l)
 }
 
-func NewWithLimiter(logger *zap.Logger, config types.BackendV2, tldCacheDisabled bool, l limiter.ServerLimiter) (types.BackendServer, merry.Error) {
+func NewWithLimiter(logger *zap.Logger, config types.BackendV2, tldCacheDisabled bool, tldQueryNonExist bool, l limiter.ServerLimiter) (types.BackendServer, merry.Error) {
 	httpClient := &http.Client{
 		Transport: &http.Transport{
 			MaxIdleConnsPerHost: *config.MaxIdleConnsPerHost,
@@ -85,6 +87,7 @@ func NewWithLimiter(logger *zap.Logger, config types.BackendV2, tldCacheDisabled
 		timeout:              *config.Timeouts,
 		maxTries:             *config.MaxTries,
 		maxMetricsPerRequest: *config.MaxBatchSize,
+		tldQueryNonExist:     tldQueryNonExist,
 
 		client:  httpClient,
 		limiter: l,
@@ -272,8 +275,16 @@ func (c *ClientProtoV3Group) TagValues(ctx context.Context, query string, limit 
 
 func (c *ClientProtoV3Group) ProbeTLDs(ctx context.Context) ([]string, merry.Error) {
 	logger := c.logger.With(zap.String("function", "prober"))
-	req := &protov3.MultiGlobRequest{
-		Metrics: []string{"*"},
+
+	var req *protov3.MultiGlobRequest
+	if c.tldQueryNonExist {
+		req = &protov3.MultiGlobRequest{
+			Metrics: []string{"NonExistingTarget"},
+		}
+	} else {
+		req = &protov3.MultiGlobRequest{
+			Metrics: []string{"*"},
+		}
 	}
 
 	logger.Debug("doing request",

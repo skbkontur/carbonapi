@@ -22,6 +22,7 @@ type zipper struct {
 	logger              *zap.Logger
 	statsSender         func(*zipperTypes.Stats)
 	ignoreClientTimeout bool
+	tldQueryNonExist    bool
 }
 
 func newZipper(sender func(*zipperTypes.Stats), config *zipperCfg.Config, ignoreClientTimeout bool, logger *zap.Logger) *zipper {
@@ -38,6 +39,7 @@ func newZipper(sender func(*zipperTypes.Stats), config *zipperCfg.Config, ignore
 		logger:              logger,
 		statsSender:         sender,
 		ignoreClientTimeout: ignoreClientTimeout,
+		tldQueryNonExist:    config.TLDQueryNonExist,
 	}
 
 	return z

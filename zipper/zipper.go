@@ -54,6 +54,7 @@ func createBackendsV2(logger *zap.Logger, backends types.BackendsV2, expireDelay
 		tries := backends.MaxTries
 		maxIdleConnsPerHost := backends.MaxIdleConnsPerHost
 		keepAliveInterval := backends.KeepAliveInterval
+		tldQueryNonExist := backends.TLDQueryNonExist
 		maxBatchSize := backends.MaxBatchSize
 
 		if backend.Timeouts == nil {
@@ -73,6 +74,9 @@ func createBackendsV2(logger *zap.Logger, backends types.BackendsV2, expireDelay
 		}
 		if backend.KeepAliveInterval == nil {
 			backend.KeepAliveInterval = &keepAliveInterval
+		}
+		if backend.TLDQueryNonExist == nil {
+			backend.TLDQueryNonExist = &tldQueryNonExist
 		}
 
 		var backendServer types.BackendServer
@@ -109,7 +113,7 @@ func createBackendsV2(logger *zap.Logger, backends types.BackendsV2, expireDelay
 			)
 		}
 		if lbMethod == types.RoundRobinLB {
-			backendServer, e = backendInit(logger, backend, tldCacheDisabled)
+			backendServer, e = backendInit(logger, backend, tldCacheDisabled, *backend.TLDQueryNonExist)
 			if e != nil {
 				return nil, e
 			}
@@ -120,7 +124,7 @@ func createBackendsV2(logger *zap.Logger, backends types.BackendsV2, expireDelay
 			for _, server := range backend.Servers {
 				config.Servers = []string{server}
 				config.GroupName = server
-				backendServer, e = backendInit(logger, config, tldCacheDisabled)
+				backendServer, e = backendInit(logger, config, tldCacheDisabled, *backend.TLDQueryNonExist)
 				if e != nil {
 					return nil, e
 				}

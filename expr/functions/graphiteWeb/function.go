@@ -455,7 +455,7 @@ func (f *graphiteWeb) Do(ctx context.Context, e parser.Expr, from, until int64, 
 		}
 		res = append(res, &types.MetricData{
 			FetchResponse: pbResp,
-			Tags: tags,
+			Tags:          tags,
 		})
 	}
 

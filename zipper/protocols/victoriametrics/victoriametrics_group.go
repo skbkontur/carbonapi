@@ -50,6 +50,8 @@ type VictoriaMetricsGroup struct {
 	maxTries             int
 	maxMetricsPerRequest int
 
+	tldQueryNonExist bool
+
 	step              int64
 	maxPointsPerQuery int64
 
@@ -63,7 +65,7 @@ type VictoriaMetricsGroup struct {
 	featureSet atomic.Value // *vmSupportedFeatures
 }
 
-func NewWithLimiter(logger *zap.Logger, config types.BackendV2, tldCacheDisabled bool, limiter limiter.ServerLimiter) (types.BackendServer, merry.Error) {
+func NewWithLimiter(logger *zap.Logger, config types.BackendV2, tldCacheDisabled bool, tldQueryNonExist bool, limiter limiter.ServerLimiter) (types.BackendServer, merry.Error) {
 	logger = logger.With(zap.String("type", "victoriametrics"), zap.String("protocol", config.Protocol), zap.String("name", config.GroupName))
 	httpClient := &http.Client{
 		Transport: &http.Transport{
@@ -194,6 +196,8 @@ func NewWithLimiter(logger *zap.Logger, config types.BackendV2, tldCacheDisabled
 		probeVersionInterval: probeVersionInterval,
 		fallbackVersion:      fallbackVersion,
 
+		tldQueryNonExist: tldQueryNonExist,
+
 		client:  httpClient,
 		limiter: limiter,
 		logger:  logger,
@@ -202,7 +206,7 @@ func NewWithLimiter(logger *zap.Logger, config types.BackendV2, tldCacheDisabled
 	}
 
 	promLogger := logger.With(zap.String("subclass", "prometheus"))
-	c.BackendServer, _ = prometheus.NewWithEverythingInitialized(promLogger, config, tldCacheDisabled, limiter, step, maxPointsPerQuery, delay, httpQuery, httpClient)
+	c.BackendServer, _ = prometheus.NewWithEverythingInitialized(promLogger, config, tldCacheDisabled, tldQueryNonExist, limiter, step, maxPointsPerQuery, delay, httpQuery, httpClient)
 
 	c.updateFeatureSet(context.Background())
 
@@ -217,7 +221,7 @@ func NewWithLimiter(logger *zap.Logger, config types.BackendV2, tldCacheDisabled
 	return c, nil
 }
 
-func New(logger *zap.Logger, config types.BackendV2, tldCacheDisabled bool) (types.BackendServer, merry.Error) {
+func New(logger *zap.Logger, config types.BackendV2, tldCacheDisabled bool, tldQueryNonExist bool) (types.BackendServer, merry.Error) {
 	if config.ConcurrencyLimit == nil {
 		return nil, types.ErrConcurrencyLimitNotSet
 	}
@@ -226,5 +230,5 @@ func New(logger *zap.Logger, config types.BackendV2, tldCacheDisabled bool) (typ
 	}
 	l := limiter.NewServerLimiter([]string{config.GroupName}, *config.ConcurrencyLimit)
 
-	return NewWithLimiter(logger, config, tldCacheDisabled, l)
+	return NewWithLimiter(logger, config, tldCacheDisabled, tldQueryNonExist, l)
 }

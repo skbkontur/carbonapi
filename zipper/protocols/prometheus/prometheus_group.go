@@ -69,6 +69,8 @@ type PrometheusGroup struct {
 	maxTries             int
 	maxMetricsPerRequest int
 
+	tldQueryNonExist bool
+
 	step              int64
 	maxPointsPerQuery int64
 
@@ -77,7 +79,7 @@ type PrometheusGroup struct {
 	httpQuery *helper.HttpQuery
 }
 
-func NewWithLimiter(logger *zap.Logger, config types.BackendV2, tldCacheDisabled bool, limiter limiter.ServerLimiter) (types.BackendServer, merry.Error) {
+func NewWithLimiter(logger *zap.Logger, config types.BackendV2, tldCacheDisabled bool, tldQueryNonExist bool, limiter limiter.ServerLimiter) (types.BackendServer, merry.Error) {
 	logger = logger.With(zap.String("type", "prometheus"), zap.String("protocol", config.Protocol), zap.String("name", config.GroupName))
 
 	logger.Warn("support for this backend protocol is experimental, use with caution")
@@ -160,10 +162,10 @@ func NewWithLimiter(logger *zap.Logger, config types.BackendV2, tldCacheDisabled
 
 	httpQuery := helper.NewHttpQuery(config.GroupName, config.Servers, *config.MaxTries, limiter, httpClient, httpHeaders.ContentTypeCarbonAPIv2PB)
 
-	return NewWithEverythingInitialized(logger, config, tldCacheDisabled, limiter, step, maxPointsPerQuery, delay, httpQuery, httpClient)
+	return NewWithEverythingInitialized(logger, config, tldCacheDisabled, tldQueryNonExist, limiter, step, maxPointsPerQuery, delay, httpQuery, httpClient)
 }
 
-func NewWithEverythingInitialized(logger *zap.Logger, config types.BackendV2, tldCacheDisabled bool, limiter limiter.ServerLimiter, step, maxPointsPerQuery int64, delay StartDelay, httpQuery *helper.HttpQuery, httpClient *http.Client) (types.BackendServer, merry.Error) {
+func NewWithEverythingInitialized(logger *zap.Logger, config types.BackendV2, tldCacheDisabled bool, tldQueryNonExist bool, limiter limiter.ServerLimiter, step, maxPointsPerQuery int64, delay StartDelay, httpQuery *helper.HttpQuery, httpClient *http.Client) (types.BackendServer, merry.Error) {
 	c := &PrometheusGroup{
 		groupName:            config.GroupName,
 		servers:              config.Servers,
@@ -175,6 +177,8 @@ func NewWithEverythingInitialized(logger *zap.Logger, config types.BackendV2, tl
 		maxPointsPerQuery:    maxPointsPerQuery,
 		startDelay:           delay,
 
+		tldQueryNonExist: tldQueryNonExist,
+
 		client:  httpClient,
 		limiter: limiter,
 		logger:  logger,
@@ -184,7 +188,7 @@ func NewWithEverythingInitialized(logger *zap.Logger, config types.BackendV2, tl
 	return c, nil
 }
 
-func New(logger *zap.Logger, config types.BackendV2, tldCacheDisabled bool) (types.BackendServer, merry.Error) {
+func New(logger *zap.Logger, config types.BackendV2, tldCacheDisabled bool, tldQueryNonExist bool) (types.BackendServer, merry.Error) {
 	if config.ConcurrencyLimit == nil {
 		return nil, types.ErrConcurrencyLimitNotSet
 	}
@@ -193,7 +197,7 @@ func New(logger *zap.Logger, config types.BackendV2, tldCacheDisabled bool) (typ
 	}
 	l := limiter.NewServerLimiter([]string{config.GroupName}, *config.ConcurrencyLimit)
 
-	return NewWithLimiter(logger, config, tldCacheDisabled, l)
+	return NewWithLimiter(logger, config, tldCacheDisabled, tldQueryNonExist, l)
 }
 
 func (c *PrometheusGroup) Children() []types.BackendServer {
@@ -674,8 +678,16 @@ func (c *PrometheusGroup) TagValues(ctx context.Context, query string, limit int
 
 func (c *PrometheusGroup) ProbeTLDs(ctx context.Context) ([]string, merry.Error) {
 	logger := c.logger.With(zap.String("function", "prober"))
-	req := &protov3.MultiGlobRequest{
-		Metrics: []string{"*"},
+
+	var req *protov3.MultiGlobRequest
+	if c.tldQueryNonExist {
+		req = &protov3.MultiGlobRequest{
+			Metrics: []string{"NonExistingTarget"},
+		}
+	} else {
+		req = &protov3.MultiGlobRequest{
+			Metrics: []string{"*"},
+		}
 	}
 
 	logger.Debug("doing request",

@@ -530,6 +530,7 @@ Supported options:
   - `concurrencyLimitPerServer` - limit of max connections per server. Likely should be >= maxIdleConnsPerHost. Default: 0 - unlimited
   - `maxIdleConnsPerHost` - as we use KeepAlive to keep connections opened, this limits amount of connections that will be left opened. Tune with care as some backends might have issues handling larger number of connections.
   - `keepAliveInterval` - KeepAlive interval
+  - `tldQueryNonExist`  - TLD probe with NonExistingTarget instead of `*` 
   - `scaleToCommonStep` - controls if metrics in one target should be aggregated to common step. `true` by default
   - `backends` - old-style backend configuration.
   
@@ -607,7 +608,8 @@ Supported options:
              
              If not 0, carbonapi will do `find` request to determine how many metrics matches criteria and only then will fetch them, not more than `maxBatchSize` per request.
              
-           * `keepAliveInterval` - override global `keepAliveInterval` for this backend group
+           * `keepAliveInterval` - override global `keepAliveInterval` for this backend group (NOT USED at now)
+           * `tldQueryNonExist` - override global `tldQueryNonExist` for this backend group
            * `concurrencyLimit` - override global `concurrencyLimit` for this backend group
            * `maxIdleConnsPerHost` - override global `maxIdleConnsPerHost` for this backend group
            * `timeouts` - override global `timeouts` struct for this backend group
@@ -747,6 +749,7 @@ upstreams:
     concurrencyLimitPerServer: 0
     keepAliveInterval: "30s"
     maxIdleConnsPerHost: 100
+    tldQueryNonExist: false
     timeouts:
         find: "2s"
         render: "10s"
