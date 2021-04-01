@@ -194,6 +194,7 @@ func findHandler(w http.ResponseWriter, r *http.Request) {
 	srcIP, srcPort := splitRemoteAddr(r.RemoteAddr)
 
 	parentUUID := helper.ParentUuid(r)
+	referer := helper.GetHeaderFirst(r, "Referer")
 
 	accessLogger := zapwriter.Logger("find")
 	var accessLogDetails = carbonapipb.AccessLogDetails{
@@ -205,7 +206,7 @@ func findHandler(w http.ResponseWriter, r *http.Request) {
 		PeerIP:         srcIP,
 		PeerPort:       srcPort,
 		Host:           r.Host,
-		Referer:        r.Referer(),
+		Referer:        referer,
 		URI:            r.RequestURI,
 		Format:         formatRaw,
 		RequestHeaders: requestHeaders,

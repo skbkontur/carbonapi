@@ -29,10 +29,12 @@ func tagHandler(w http.ResponseWriter, r *http.Request) {
 	username, _, _ := r.BasicAuth()
 
 	parentUUID := helper.ParentUuid(r)
+	referer := helper.GetRefererWithPanelId(r)
 
 	logger := zapwriter.Logger("tag").With(
 		zap.String("carbonapi_uuid", uuid.String()),
 		zap.String("parent_uuid", parentUUID),
+		zap.String("referer", referer),
 		zap.String("username", username),
 		zap.Any("request_headers", requestHeaders),
 	)
@@ -49,7 +51,7 @@ func tagHandler(w http.ResponseWriter, r *http.Request) {
 		PeerIP:         srcIP,
 		PeerPort:       srcPort,
 		Host:           r.Host,
-		Referer:        r.Referer(),
+		Referer:        referer,
 		URI:            r.RequestURI,
 		RequestHeaders: requestHeaders,
 	}

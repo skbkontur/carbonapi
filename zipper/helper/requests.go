@@ -303,28 +303,51 @@ func (c *HttpQuery) DoQueryToAll(ctx context.Context, logger *zap.Logger, uri st
 	return res, types.ErrMaxTriesExceeded.WithCause(e)
 }
 
-func ParentUuid(r *http.Request) string {
-	var uuid strings.Builder
-	grafanaId := r.Header["X-Grafana-Org-Id"]
-	if len(grafanaId) > 0 {
-		uuid.WriteString("grafana")
-		uuid.WriteString(grafanaId[0])
-		dashboardId := r.Header["X-Dashboard-Id"]
-		if len(dashboardId) > 0 {
-			uuid.WriteString("-dashboard")
-			uuid.WriteString(dashboardId[0])
+func GetRefererWithPanelId(r *http.Request) string {
+	result := r.Referer()
+	if result != "" {
+		if strings.Index(result, "&panelId=") != -1 {
+			// grafana panelId
+			panelId := r.Header["X-Panel-Id"]
+			if len(panelId) > 0 {
+				result = result + " (panelId=" + panelId[0] + ")"
+			}
 		}
-		panelId := r.Header["X-Panel-Id"]
-		if len(panelId) > 0 {
-			uuid.WriteString("-panel")
-			uuid.WriteString(panelId[0])
+		return result
+	} else {
+		// referer not set
+		var id strings.Builder
+		grafanaId := r.Header["X-Grafana-Org-Id"]
+		if len(grafanaId) > 0 {
+			// grafana
+			id.WriteString("(grafanaId=")
+			id.WriteString(grafanaId[0])
+			dashboardId := r.Header["X-Dashboard-Id"]
+			if len(dashboardId) > 0 {
+				id.WriteString("&dashboardId=")
+				id.WriteString(dashboardId[0])
+			}
+			panelId := r.Header["X-Panel-Id"]
+			if len(panelId) > 0 {
+				id.WriteString("&panelId=")
+				id.WriteString(panelId[0])
+			}
+			id.WriteString(")")
 		}
-		grafanaUUID := r.Header["X-Grafana-UUID"]
-		if len(grafanaUUID) > 0 {
-			uuid.WriteString("-")
-			uuid.WriteString(grafanaUUID[0])
-		}
+		return id.String()
 	}
+}
 
-	return uuid.String()
+func ParentUuid(r *http.Request) string {
+	// for future use - extract UUID from grafana and etc
+	result := GetHeaderFirst(r, "x-graphana-uuid")
+	return result
+}
+
+func GetHeaderFirst(r *http.Request, key string) string {
+	values := r.Header[key]
+	if len(values) > 0 {
+		return values[0]
+	}
+	return ""
 }
