@@ -35,16 +35,27 @@ func requestError(err error, server string) merry.Error {
 	return types.ErrResponceError.WithValue("server", server)
 }
 
+func rootError(err merry.Error) (int, error) {
+	var code int
+	c := merry.RootCause(err)
+	if c == nil {
+		c = err
+	}
+	if _, ok := c.(*net.OpError); ok {
+		// workaround - on golang 1.15 (CentOS 7) http status code not resolved sometimes with merry.HTTPCode, it's a strange
+		code = http.StatusServiceUnavailable
+	} else {
+		code = merry.HTTPCode(err)
+	}
+
+	return code, c
+}
+
 func MergeHttpErrors(errors []merry.Error) (int, []string) {
 	returnCode := http.StatusNotFound
 	errMsgs := make([]string, 0)
 	for _, err := range errors {
-		var code int
-		c := merry.RootCause(err)
-		if c == nil {
-			c = err
-		}
-		code = merry.HTTPCode(c)
+		code, c := rootError(err)
 
 		if code == http.StatusNotFound || merry.Is(c, parser.ErrSeriesDoesNotExist) {
 			continue
