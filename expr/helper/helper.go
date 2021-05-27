@@ -155,7 +155,7 @@ func AggregateSeries(e parser.Expr, args []*types.MetricData, function Aggregate
 	}
 
 	length := len(args[0].Values)
-	r := *args[0]
+	r := *args[0].Copy(true)
 	r.Name = fmt.Sprintf("%s(%s)", e.Target(), e.RawArgs())
 	r.Values = make([]float64, length)
 
