@@ -118,6 +118,7 @@ type queryBatch struct {
 	pathExpression string
 	from           int64
 	until          int64
+	maxDataPoints  int64
 }
 
 func (c *ClientProtoV2Group) Fetch(ctx context.Context, request *protov3.MultiFetchRequest) (*protov3.MultiFetchResponse, *types.Stats, merry.Error) {
@@ -131,6 +132,7 @@ func (c *ClientProtoV2Group) Fetch(ctx context.Context, request *protov3.MultiFe
 			pathExpression: m.PathExpression,
 			from:           m.StartTime,
 			until:          m.StopTime,
+			maxDataPoints:  m.MaxDataPoints,
 		}
 
 		batches[b] = append(batches[b], m.Name)
@@ -140,10 +142,11 @@ func (c *ClientProtoV2Group) Fetch(ctx context.Context, request *protov3.MultiFe
 	var e merry.Error
 	for batch, targets := range batches {
 		v := url.Values{
-			"target": targets,
-			"format": []string{format},
-			"from":   []string{strconv.Itoa(int(batch.from))},
-			"until":  []string{strconv.Itoa(int(batch.until))},
+			"target":        targets,
+			"format":        []string{format},
+			"from":          []string{strconv.Itoa(int(batch.from))},
+			"until":         []string{strconv.Itoa(int(batch.until))},
+			"maxDataPoints": []string{strconv.Itoa(int(batch.maxDataPoints))},
 		}
 		rewrite.RawQuery = v.Encode()
 		stats.RenderRequests += 1
