@@ -266,9 +266,9 @@ func renderHandler(w http.ResponseWriter, r *http.Request) {
 
 	var backendCacheKey string
 	if len(config.Config.TruncateTime) > 0 {
-		backendCacheKey = backendCacheComputeKeyAbs(from32, until32, targets)
+		backendCacheKey = backendCacheComputeKeyAbs(from32, until32, targets, maxDataPoints)
 	} else {
-		backendCacheKey = backendCacheComputeKey(from, until, targets)
+		backendCacheKey = backendCacheComputeKey(from, until, targets, maxDataPoints)
 	}
 
 	results, err := backendCacheFetchResults(logger, useCache, backendCacheKey, accessLogDetails)
@@ -409,18 +409,23 @@ func responseCacheComputeKey(from, until int64, targets []string, format string,
 	return responseCacheKey.String()
 }
 
-func backendCacheComputeKey(from, until string, targets []string) string {
-	var backendCacheKey bytes.Buffer
+func backendCacheComputeKey(from, until string, targets []string, maxDataPoints int64) string {
+	var backendCacheKey stringutils.Builder
+	backendCacheKey.Grow(256)
 	backendCacheKey.WriteString("from:")
 	backendCacheKey.WriteString(from)
 	backendCacheKey.WriteString(" until:")
 	backendCacheKey.WriteString(until)
 	backendCacheKey.WriteString(" targets:")
 	backendCacheKey.WriteString(strings.Join(targets, ","))
+	if maxDataPoints > 0 {
+		backendCacheKey.WriteString(" maxDataPoints:")
+		backendCacheKey.WriteInt(maxDataPoints, 10)
+	}
 	return backendCacheKey.String()
 }
 
-func backendCacheComputeKeyAbs(from, until int64, targets []string) string {
+func backendCacheComputeKeyAbs(from, until int64, targets []string, maxDataPoints int64) string {
 	var backendCacheKey stringutils.Builder
 	backendCacheKey.Grow(128)
 	backendCacheKey.WriteString("from:")
@@ -429,6 +434,10 @@ func backendCacheComputeKeyAbs(from, until int64, targets []string) string {
 	backendCacheKey.WriteInt(until, 10)
 	backendCacheKey.WriteString(" targets:")
 	backendCacheKey.WriteString(strings.Join(targets, ","))
+	if maxDataPoints > 0 {
+		backendCacheKey.WriteString(" maxDataPoints:")
+		backendCacheKey.WriteInt(maxDataPoints, 10)
+	}
 	return backendCacheKey.String()
 }
 
