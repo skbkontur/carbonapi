@@ -9,6 +9,70 @@ import (
 	"github.com/go-graphite/carbonapi/expr/types"
 )
 
+func TestExtractMetric(t *testing.T) {
+	var tests = []struct {
+		input  string
+		metric string
+	}{
+		{
+			"f",
+			"f",
+		},
+		{
+			"func(f)",
+			"f",
+		},
+		{
+			"foo.bar.baz",
+			"foo.bar.baz",
+		},
+		{
+			"nonNegativeDerivative(foo.bar.baz)",
+			"foo.bar.baz",
+		},
+		{
+			"movingAverage(foo.bar.baz,10)",
+			"foo.bar.baz",
+		},
+		{
+			"scale(scaleToSeconds(nonNegativeDerivative(foo.bar.baz),60),60)",
+			"foo.bar.baz",
+		},
+		{
+			"divideSeries(foo.bar.baz,baz.qux.zot)",
+			"foo.bar.baz",
+		},
+		{
+			"{something}",
+			"{something}",
+		},
+		{
+			"movingAverage(foo.bar=.baz, 10)",
+			"foo.bar=.baz",
+		},
+		{
+			"movingAverage(foo.bar==.baz, 10)",
+			"foo.bar==.baz",
+		},
+		{
+			"movingAverage(foo.bar=;tag1=baz, 10)",
+			"foo.bar=",
+		},
+		{
+			"movingAverage(foo.bar==;tag1=baz, 10)",
+			"foo.bar==",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			if m := ExtractMetric(tt.input); m != tt.metric {
+				t.Errorf("extractMetric(%q)=%q, want %q", tt.input, m, tt.metric)
+			}
+		})
+	}
+}
+
 func TestExtractTags(t *testing.T) {
 	tests := []struct {
 		name     string

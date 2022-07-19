@@ -108,6 +108,24 @@ func TestAliasByNode(t *testing.T) {
 			},
 			Want: []*types.MetricData{types.MakeMetricData("base.metric1", []float64{math.NaN(), 1, 1, 1, 1}, 1, now32)},
 		},
+		{
+			Target: "aliasByNode(metric1.foo.*.*,2)",
+			M: map[parser.MetricRequest][]*types.MetricData{
+				{Metric: "metric1.foo.*.*", From: 0, Until: 1}: {
+					types.MakeMetricData("metric1.foo.Ab1==.lag", []float64{1, 2, 3, 4, 5}, 1, now32),
+				},
+			},
+			Want: []*types.MetricData{types.MakeMetricData("Ab1==", []float64{1, 2, 3, 4, 5}, 1, now32)},
+		},
+		{
+			Target: "aliasByNode(*,0,2)",
+			M: map[parser.MetricRequest][]*types.MetricData{
+				{Metric: "*", From: 0, Until: 1}: {
+					types.MakeMetricData("metric1.foo.bar=;tag1=value1", []float64{1, 2, 3, 4, 5}, 1, now32),
+				},
+			},
+			Want: []*types.MetricData{types.MakeMetricData("metric1.bar=", []float64{1, 2, 3, 4, 5}, 1, now32)},
+		},
 	}
 
 	for _, tt := range tests {
