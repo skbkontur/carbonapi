@@ -43,7 +43,7 @@ func (srv GRPCServer) FetchMetrics(ctx context.Context, in *pb.MultiFetchRequest
 		zap.String("request", "grpc"),
 	)
 
-	Metrics.FindRequests.Add(1)
+	Metrics.FindRequests.Inc(1)
 
 	grpcLogger := zapwriter.Logger("grpc_access").With(
 		zap.String("handler", "render"),
@@ -57,7 +57,7 @@ func (srv GRPCServer) FetchMetrics(ctx context.Context, in *pb.MultiFetchRequest
 		zap.Any("request", in.Metrics),
 	)
 
-	Metrics.RenderRequests.Add(1)
+	Metrics.RenderRequests.Inc(1)
 
 	response, stats, err := config.zipper.FetchProtoV3(ctx, in)
 	sendStats(stats)
@@ -92,7 +92,7 @@ func (srv GRPCServer) FindMetrics(ctx context.Context, in *pb.MultiGlobRequest) 
 		zap.String("request", "grpc"),
 	)
 
-	Metrics.FindRequests.Add(1)
+	Metrics.FindRequests.Inc(1)
 
 	grpcLogger := zapwriter.Logger("grpc_access").With(
 		zap.String("handler", "find"),

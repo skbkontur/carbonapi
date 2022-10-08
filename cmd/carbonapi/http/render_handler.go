@@ -101,7 +101,8 @@ func renderHandler(w http.ResponseWriter, r *http.Request) {
 		deferredAccessLogging(accessLogger, accessLogDetails, t0, logAsError)
 	}()
 
-	ApiMetrics.Requests.Add(1)
+	// TODO(msaf1980) add buckets
+	// ApiMetrics.Requests.Inc(1)
 
 	err := r.ParseForm()
 	if err != nil {
@@ -224,18 +225,18 @@ func renderHandler(w http.ResponseWriter, r *http.Request) {
 		tc := time.Now()
 		response, err := config.Config.ResponseCache.Get(responseCacheKey)
 		td := time.Since(tc).Nanoseconds()
-		ApiMetrics.RenderCacheOverheadNS.Add(td)
+		ApiMetrics.RenderCacheOverheadNS.Inc(uint64(td))
 
 		accessLogDetails.CarbonzipperResponseSizeBytes = 0
 		accessLogDetails.CarbonapiResponseSizeBytes = int64(len(response))
 
 		if err == nil {
-			ApiMetrics.RequestCacheHits.Add(1)
+			ApiMetrics.RequestCacheHits.Inc(1)
 			writeResponse(w, http.StatusOK, response, format, jsonp, uid.String())
 			accessLogDetails.FromCache = true
 			return
 		}
-		ApiMetrics.RequestCacheMisses.Add(1)
+		ApiMetrics.RequestCacheMisses.Inc(1)
 	}
 
 	if from32 >= until32 {
@@ -274,7 +275,7 @@ func renderHandler(w http.ResponseWriter, r *http.Request) {
 	results, err := backendCacheFetchResults(logger, useCache, backendCacheKey, accessLogDetails)
 
 	if err != nil {
-		ApiMetrics.BackendCacheMisses.Add(1)
+		ApiMetrics.BackendCacheMisses.Inc(1)
 
 		results = make([]*types.MetricData, 0)
 		values := make(map[parser.MetricRequest][]*types.MetricData)
@@ -288,7 +289,7 @@ func renderHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			ApiMetrics.RenderRequests.Add(1)
+			ApiMetrics.RenderRequests.Inc(1)
 
 			result, err := expr.FetchAndEvalExp(ctx, exp, from32, until32, values)
 			if err != nil {
@@ -377,7 +378,7 @@ func renderHandler(w http.ResponseWriter, r *http.Request) {
 		tc := time.Now()
 		config.Config.ResponseCache.Set(responseCacheKey, body, responseCacheTimeout)
 		td := time.Since(tc).Nanoseconds()
-		ApiMetrics.RenderCacheOverheadNS.Add(td)
+		ApiMetrics.RenderCacheOverheadNS.Inc(uint64(td))
 	}
 
 	gotErrors := len(errors) > 0
@@ -454,7 +455,7 @@ func backendCacheFetchResults(logger *zap.Logger, useCache bool, backendCacheKey
 	}
 
 	accessLogDetails.UsedBackendCache = true
-	ApiMetrics.BackendCacheHits.Add(1)
+	ApiMetrics.BackendCacheHits.Inc(uint64(1))
 
 	return results, nil
 }

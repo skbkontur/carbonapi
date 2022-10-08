@@ -27,10 +27,10 @@ require (
 	github.com/lomik/zapwriter v0.0.0-20210624082824-c1161d1eb463
 	github.com/maruel/natural v1.1.0
 	github.com/mjibson/go-dsp v0.0.0-20180508042940-11479a337f12
-	github.com/msaf1980/go-stringutils v0.0.15
+	github.com/msaf1980/go-metrics v0.0.9
+	github.com/msaf1980/go-stringutils v0.1.2
 	github.com/natefinch/atomic v1.0.1
 	github.com/openhistogram/circonusllhist v0.3.0 // indirect
-	github.com/peterbourgon/g2g v0.0.0-20161124161852-0c2bab2b173d
 	github.com/rs/dnscache v0.0.0-20211102005908-e0241e321417
 	github.com/satori/go.uuid v1.2.0
 	github.com/spf13/viper v1.12.0

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/go-graphite/carbonapi/carbonapipb"
@@ -194,20 +193,11 @@ func writeResponse(w http.ResponseWriter, returnCode int, b []byte, format respo
 }
 
 func bucketRequestTimes(req *http.Request, t time.Duration) {
-	logger := zapwriter.Logger("slow")
-
 	ms := t.Nanoseconds() / int64(time.Millisecond)
-
-	bucket := int(ms / 100)
-
-	if bucket < config.Config.Upstreams.Buckets {
-		atomic.AddInt64(&TimeBuckets[bucket], 1)
-	} else {
-		// Too big? Increment overflow bucket
-		atomic.AddInt64(&TimeBuckets[config.Config.Upstreams.Buckets], 1)
-	}
+	ApiMetrics.RequestsH.Add(ms)
 
 	if t > config.Config.Upstreams.SlowLogThreshold {
+		logger := zapwriter.Logger("slow")
 		referer := req.Header.Get("Referer")
 		logger.Warn("Slow Request",
 			zap.Duration("time", t),
