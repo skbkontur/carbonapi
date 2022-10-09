@@ -101,9 +101,6 @@ func renderHandler(w http.ResponseWriter, r *http.Request) {
 		deferredAccessLogging(accessLogger, accessLogDetails, t0, logAsError)
 	}()
 
-	// TODO(msaf1980) add buckets
-	// ApiMetrics.Requests.Inc(1)
-
 	err := r.ParseForm()
 	if err != nil {
 		setError(w, accessLogDetails, err.Error(), http.StatusBadRequest, uid.String())
@@ -232,6 +229,7 @@ func renderHandler(w http.ResponseWriter, r *http.Request) {
 
 		if err == nil {
 			ApiMetrics.RequestCacheHits.Inc(1)
+			w.Header().Set("X-Carbonapi-Request-Cached", strconv.FormatInt(int64(responseCacheTimeout), 10))
 			writeResponse(w, http.StatusOK, response, format, jsonp, uid.String())
 			accessLogDetails.FromCache = true
 			return
@@ -303,7 +301,8 @@ func renderHandler(w http.ResponseWriter, r *http.Request) {
 			expr.SortMetrics(values[mFetch], mFetch)
 		}
 
-		if len(errors) == 0 {
+		if len(errors) == 0 && backendCacheTimeout > 0 {
+			w.Header().Set("X-Carbonapi-Backend-Cached", strconv.FormatInt(int64(backendCacheTimeout), 10))
 			backendCacheStoreResults(logger, backendCacheKey, results, backendCacheTimeout)
 		}
 	}
