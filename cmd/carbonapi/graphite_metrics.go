@@ -46,9 +46,19 @@ func setupGraphiteMetrics(logger *zap.Logger) {
 
 		metrics.Register("request_cache_hits", http.ApiMetrics.RequestCacheHits)
 		metrics.Register("request_cache_misses", http.ApiMetrics.RequestCacheMisses)
-		metrics.Register("request_cache_overhead_ns", http.ApiMetrics.RenderCacheOverheadNS)
+		metrics.Register("request_cache_overhead_ns", http.ApiMetrics.RequestsCacheOverheadNS)
 		metrics.Register("backend_cache_hits", http.ApiMetrics.BackendCacheHits)
 		metrics.Register("backend_cache_misses", http.ApiMetrics.BackendCacheMisses)
+
+		if config.Config.Upstreams.ExtendedStat {
+			metrics.Register("requests_staus_code.200", http.ApiMetrics.Requests200)
+			metrics.Register("requests_staus_code.400", http.ApiMetrics.Requests400)
+			metrics.Register("requests_staus_code.403", http.ApiMetrics.Requests403)
+			metrics.Register("requests_staus_code.4xx", http.ApiMetrics.Requestsxxx)
+			metrics.Register("requests_staus_code.500", http.ApiMetrics.Requests500)
+			metrics.Register("requests_staus_code.503", http.ApiMetrics.Requests503)
+			metrics.Register("requests_staus_code.5xx", http.ApiMetrics.Requests5xx)
+		}
 
 		// requests histogram
 		metrics.Register("requests", http.ApiMetrics.RequestsH)

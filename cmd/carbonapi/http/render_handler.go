@@ -225,7 +225,7 @@ func renderHandler(w http.ResponseWriter, r *http.Request) {
 		tc := time.Now()
 		response, err := config.Config.ResponseCache.Get(responseCacheKey)
 		td := time.Since(tc).Nanoseconds()
-		ApiMetrics.RenderCacheOverheadNS.Inc(uint64(td))
+		ApiMetrics.RequestsCacheOverheadNS.Inc(uint64(td))
 
 		accessLogDetails.CarbonzipperResponseSizeBytes = 0
 		accessLogDetails.CarbonapiResponseSizeBytes = int64(len(response))
@@ -378,7 +378,7 @@ func renderHandler(w http.ResponseWriter, r *http.Request) {
 		tc := time.Now()
 		config.Config.ResponseCache.Set(responseCacheKey, body, responseCacheTimeout)
 		td := time.Since(tc).Nanoseconds()
-		ApiMetrics.RenderCacheOverheadNS.Inc(uint64(td))
+		ApiMetrics.RequestsCacheOverheadNS.Inc(uint64(td))
 	}
 
 	gotErrors := len(errors) > 0

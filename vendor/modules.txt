@@ -116,7 +116,7 @@ github.com/mitchellh/mapstructure
 ## explicit
 github.com/mjibson/go-dsp/dsputils
 github.com/mjibson/go-dsp/fft
-# github.com/msaf1980/go-metrics v0.0.9
+# github.com/msaf1980/go-metrics v0.0.10
 ## explicit
 github.com/msaf1980/go-metrics
 github.com/msaf1980/go-metrics/graphite

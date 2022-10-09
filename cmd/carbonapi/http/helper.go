@@ -237,9 +237,28 @@ func deferredAccessLogging(accessLogger *zap.Logger, accessLogDetails *carbonapi
 	accessLogDetails.Runtime = time.Since(t).Seconds()
 	if logAsError {
 		accessLogger.Error("request failed", zap.Any("data", *accessLogDetails))
+		if config.Config.Upstreams.ExtendedStat {
+			switch accessLogDetails.HTTPCode {
+			case 400:
+				ApiMetrics.Requests400.Inc(1)
+			case 403:
+				ApiMetrics.Requests403.Inc(1)
+			case 500:
+				ApiMetrics.Requests500.Inc(1)
+			case 503:
+				ApiMetrics.Requests503.Inc(1)
+			default:
+				if accessLogDetails.HTTPCode > 500 {
+					ApiMetrics.Requests5xx.Inc(1)
+				} else {
+					ApiMetrics.Requestsxxx.Inc(1)
+				}
+			}
+		}
 	} else {
 		accessLogDetails.HTTPCode = http.StatusOK
 		accessLogger.Info("request served", zap.Any("data", *accessLogDetails))
+		ApiMetrics.Requests200.Inc(1)
 	}
 }
 

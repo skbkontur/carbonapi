@@ -11,13 +11,21 @@ import (
 )
 
 var ApiMetrics = struct {
-	RenderRequests        metrics.Counter
-	RequestCacheHits      metrics.Counter
-	RequestCacheMisses    metrics.Counter
-	BackendCacheHits      metrics.Counter
-	BackendCacheMisses    metrics.Counter
-	RenderCacheOverheadNS metrics.Counter
-	RequestsH             metrics.Histogram
+	RequestCacheHits        metrics.Counter
+	RequestCacheMisses      metrics.Counter
+	BackendCacheHits        metrics.Counter
+	BackendCacheMisses      metrics.Counter
+	RequestsCacheOverheadNS metrics.Counter
+	RequestsH               metrics.Histogram
+	Requests200             metrics.Counter
+	Requests400             metrics.Counter
+	Requests403             metrics.Counter
+	Requestsxxx             metrics.Counter // failback other 4xx statuses
+	Requests500             metrics.Counter
+	Requests503             metrics.Counter
+	Requests5xx             metrics.Counter // failback other 5xx statuses
+
+	RenderRequests metrics.Counter
 
 	FindRequests metrics.Counter
 
@@ -26,12 +34,20 @@ var ApiMetrics = struct {
 	CacheSize  metrics.UGauge
 	CacheItems metrics.Gauge
 }{
-	RenderRequests:        metrics.NewCounter(),
-	RequestCacheHits:      metrics.NewCounter(),
-	RequestCacheMisses:    metrics.NewCounter(),
-	BackendCacheHits:      metrics.NewCounter(),
-	BackendCacheMisses:    metrics.NewCounter(),
-	RenderCacheOverheadNS: metrics.NewCounter(),
+	RenderRequests:          metrics.NewCounter(),
+	RequestCacheHits:        metrics.NewCounter(),
+	RequestCacheMisses:      metrics.NewCounter(),
+	BackendCacheHits:        metrics.NewCounter(),
+	BackendCacheMisses:      metrics.NewCounter(),
+	RequestsCacheOverheadNS: metrics.NewCounter(),
+
+	Requests200: metrics.NewCounter(),
+	Requests400: metrics.NewCounter(),
+	Requests403: metrics.NewCounter(),
+	Requestsxxx: metrics.NewCounter(),
+	Requests500: metrics.NewCounter(),
+	Requests503: metrics.NewCounter(),
+	Requests5xx: metrics.NewCounter(),
 
 	FindRequests: metrics.NewCounter(),
 }
@@ -111,6 +127,9 @@ func SetupMetrics(logger *zap.Logger) {
 	default:
 	}
 
+	// if config.Config.Upstreams.ExtendedStat {
+	// }
+
 	ApiMetrics.RequestsH = initRequestsHistogram()
 }
 
@@ -121,13 +140,16 @@ func initRequestsHistogram() metrics.Histogram {
 
 			for i := 0; i <= len(config.Config.Upstreams.BucketsWidth); i++ {
 				if i >= len(config.Config.Upstreams.BucketsLabels) || config.Config.Upstreams.BucketsLabels[i] == "" {
-					labels[i] = fmt.Sprintf("_to_%dms", (i+1)*100)
+					if i < len(config.Config.Upstreams.BucketsWidth) {
+						labels[i] = fmt.Sprintf("_to_%dms", config.Config.Upstreams.BucketsWidth[i])
+					} else {
+						labels[i] = "_to_inf"
+					}
 				} else {
 					labels[i] = config.Config.Upstreams.BucketsLabels[i]
 				}
 			}
-			return metrics.NewVSumHistogram(config.Config.Upstreams.BucketsWidth, config.Config.Upstreams.BucketsLabels).
-				SetLabels(labels).
+			return metrics.NewVSumHistogram(config.Config.Upstreams.BucketsWidth, labels).
 				SetNameTotal("")
 		} else {
 			labels := make([]string, config.Config.Upstreams.Buckets+1)
@@ -144,14 +166,18 @@ func initRequestsHistogram() metrics.Histogram {
 
 		for i := 0; i <= len(config.Config.Upstreams.BucketsWidth); i++ {
 			if i >= len(config.Config.Upstreams.BucketsLabels) || config.Config.Upstreams.BucketsLabels[i] == "" {
-				labels[i] = fmt.Sprintf("_in_%dms_to_%dms", i*100, (i+1)*100)
+				if i == 0 {
+					labels[i] = fmt.Sprintf("_in_0ms_to_%dms", config.Config.Upstreams.BucketsWidth[0])
+				} else if i < len(config.Config.Upstreams.BucketsWidth) {
+					labels[i] = fmt.Sprintf("_in_%dms_to_%dms", config.Config.Upstreams.BucketsWidth[i-1], config.Config.Upstreams.BucketsWidth[i])
+				} else {
+					labels[i] = fmt.Sprintf("_in_%dms_to_inf", config.Config.Upstreams.BucketsWidth[i-1])
+				}
 			} else {
 				labels[i] = config.Config.Upstreams.BucketsLabels[i]
 			}
 		}
-		return metrics.NewVSumHistogram(config.Config.Upstreams.BucketsWidth, config.Config.Upstreams.BucketsLabels).
-			SetLabels(labels).
-			SetNameTotal("")
+		return metrics.NewVSumHistogram(config.Config.Upstreams.BucketsWidth, labels).SetNameTotal("")
 	} else {
 		labels := make([]string, config.Config.Upstreams.Buckets+1)
 
