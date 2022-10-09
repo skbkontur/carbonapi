@@ -24,6 +24,9 @@ github.com/ansel1/merry/v2
 # github.com/bradfitz/gomemcache v0.0.0-20220106215444-fb4bf637b56d
 ## explicit
 github.com/bradfitz/gomemcache/memcache
+# github.com/cactus/go-statsd-client/v5 v5.0.0
+## explicit
+github.com/cactus/go-statsd-client/v5/statsd
 # github.com/circonus-labs/gosnowth v1.10.5
 ## explicit
 github.com/circonus-labs/gosnowth

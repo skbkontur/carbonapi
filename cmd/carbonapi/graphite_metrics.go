@@ -8,9 +8,14 @@ import (
 	"github.com/go-graphite/carbonapi/cmd/carbonapi/config"
 	"github.com/go-graphite/carbonapi/cmd/carbonapi/http"
 
+	"github.com/cactus/go-statsd-client/v5/statsd"
 	"github.com/msaf1980/go-metrics"
 	"github.com/msaf1980/go-metrics/graphite"
 	"go.uber.org/zap"
+)
+
+var (
+	g *graphite.Graphite
 )
 
 func setupGraphiteMetrics(logger *zap.Logger) {
@@ -42,7 +47,27 @@ func setupGraphiteMetrics(logger *zap.Logger) {
 		pattern = strings.ReplaceAll(pattern, "{fqdn}", hostname)
 
 		// register our metrics with graphite
-		graphite := graphite.New(config.Config.Graphite.Interval, pattern, host, 10*time.Second)
+		g = graphite.New(config.Config.Graphite.Interval, pattern, host, 10*time.Second)
+
+		// StatsD client
+		if config.Config.Graphite.Statsd != "" && config.Config.Upstreams.ExtendedStat {
+			var err error
+			config := &statsd.ClientConfig{
+				Address:       config.Config.Graphite.Statsd,
+				Prefix:        pattern,
+				ResInterval:   5 * time.Minute,
+				UseBuffered:   true,
+				FlushInterval: 300 * time.Millisecond,
+			}
+			http.Gstatsd, err = statsd.NewClientWithConfig(config)
+			if err != nil {
+				logger.Error("statsd init", zap.Error(err))
+			}
+		}
+
+		if http.Gstatsd == nil {
+			http.Gstatsd = http.NullSender{}
+		}
 
 		metrics.Register("request_cache_hits", http.ApiMetrics.RequestCacheHits)
 		metrics.Register("request_cache_misses", http.ApiMetrics.RequestCacheMisses)
@@ -92,12 +117,6 @@ func setupGraphiteMetrics(logger *zap.Logger) {
 		metrics.RegisterRuntimeMemStats(nil)
 		go metrics.CaptureRuntimeMemStats(config.Config.Graphite.Interval)
 
-		// go mstats.Start(config.Config.Graphite.Interval)
-		// metrics.Register("alloc", &mstats.Alloc)
-		// metrics.Register("total_alloc", &mstats.TotalAlloc)
-		// metrics.Register("num_gc", &mstats.NumGC)
-		// metrics.Register("pause_ns", &mstats.PauseNS)
-
-		graphite.Start(nil)
+		g.Start(nil)
 	}
 }

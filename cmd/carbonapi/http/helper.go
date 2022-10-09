@@ -259,6 +259,7 @@ func deferredAccessLogging(accessLogger *zap.Logger, accessLogDetails *carbonapi
 		accessLogDetails.HTTPCode = http.StatusOK
 		accessLogger.Info("request served", zap.Any("data", *accessLogDetails))
 		ApiMetrics.Requests200.Inc(1)
+		Gstatsd.Timing("stat.all.response_size", accessLogDetails.CarbonapiResponseSizeBytes, 1.0)
 	}
 }
 

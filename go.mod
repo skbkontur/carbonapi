@@ -9,6 +9,7 @@ require (
 	github.com/alicebob/miniredis/v2 v2.22.0
 	github.com/ansel1/merry v1.6.2
 	github.com/bradfitz/gomemcache v0.0.0-20220106215444-fb4bf637b56d
+	github.com/cactus/go-statsd-client/v5 v5.0.0
 	github.com/circonus-labs/gosnowth v1.10.5
 	github.com/dgryski/go-expirecache v0.0.0-20170314133854-743ef98b2adb
 	github.com/dgryski/go-onlinestats v0.0.0-20170612111826-1c7d19468768

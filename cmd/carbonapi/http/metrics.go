@@ -127,9 +127,6 @@ func SetupMetrics(logger *zap.Logger) {
 	default:
 	}
 
-	// if config.Config.Upstreams.ExtendedStat {
-	// }
-
 	ApiMetrics.RequestsH = initRequestsHistogram()
 }
 
