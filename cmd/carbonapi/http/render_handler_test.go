@@ -54,10 +54,10 @@ func BenchmarkBackendCacheComputeKeyAbs(b *testing.B) {
 
 func Test_getCacheTimeout(t *testing.T) {
 	cacheConfig := config.CacheConfig{
-		ShortTimeoutSec:    60,
-		DefaultTimeoutSec:  300,
-		ShortDuration:      3 * time.Hour,
-		ShortUntilDelaySec: 120,
+		ShortTimeoutSec:     60,
+		DefaultTimeoutSec:   300,
+		ShortDuration:       3 * time.Hour,
+		ShortUntilOffsetSec: 120,
 	}
 
 	now := int64(1636985018)

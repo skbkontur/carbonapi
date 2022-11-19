@@ -63,7 +63,7 @@ func getCacheTimeout(logger *zap.Logger, r *http.Request, now32, until32 int64, 
 	if now32 == 0 || cacheConfig.ShortTimeoutSec == 0 || cacheConfig.ShortDuration == 0 {
 		return cacheConfig.DefaultTimeoutSec
 	}
-	if duration > cacheConfig.ShortDuration || now32-until32 > cacheConfig.ShortUntilDelaySec {
+	if duration > cacheConfig.ShortDuration || now32-until32 > cacheConfig.ShortUntilOffsetSec {
 		return cacheConfig.DefaultTimeoutSec
 	}
 	// short cache ttl

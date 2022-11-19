@@ -299,8 +299,8 @@ func createCache(logger *zap.Logger, cacheName string, cacheConfig *CacheConfig)
 	if cacheConfig.ShortDuration == 0 {
 		cacheConfig.ShortDuration = 3 * time.Hour
 	}
-	if cacheConfig.ShortUntilDelaySec == 0 {
-		cacheConfig.ShortUntilDelaySec = 120
+	if cacheConfig.ShortUntilOffsetSec == 0 {
+		cacheConfig.ShortUntilOffsetSec = 120
 	}
 
 	switch cacheConfig.Type {
