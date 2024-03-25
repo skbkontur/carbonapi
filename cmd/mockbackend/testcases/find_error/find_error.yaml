@@ -61,6 +61,7 @@ test:
           expectedResponse:
               httpCode: 503
               contentType: "text/plain; charset=utf-8"
+              errBody: "Service Unavailable\n"
 
         # 503, partial success
         - endpoint: "http://127.0.0.1:8081"
@@ -69,6 +70,7 @@ test:
           expectedResponse:
               httpCode: 503
               contentType: "text/plain; charset=utf-8"
+              errBody: "Service Unavailable\n"
 
 listeners:
       - address: ":9070"

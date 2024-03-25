@@ -45,6 +45,7 @@ type Query struct {
 type ExpectedResponse struct {
 	HttpCode        int              `yaml:"httpCode"`
 	ContentType     string           `yaml:"contentType"`
+	ErrBody         string           `yaml:"errBody"`
 	ExpectedResults []ExpectedResult `yaml:"expectedResults"`
 }
 
@@ -245,8 +246,11 @@ func doTest(logger *zap.Logger, t *Query, verbose bool) []error {
 		)
 	}
 
-	// We don't need to actually check body of response if we expect any sort of error (4xx/5xx)
+	// We don't need to actually check body of response if we expect any sort of error (4xx/5xx), but for check error handling do this
 	if t.ExpectedResponse.HttpCode >= 300 {
+		if t.ExpectedResponse.ErrBody != "" && t.ExpectedResponse.ErrBody != string(b) {
+			failures = append(failures, merry2.Errorf("mismatch error body, got '%s', expected '%s'", string(b), t.ExpectedResponse.ErrBody))
+		}
 		return failures
 	}
 

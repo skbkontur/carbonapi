@@ -362,7 +362,7 @@ func renderHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if returnCode == http.StatusBadRequest || returnCode == http.StatusNotFound || returnCode == http.StatusForbidden || returnCode >= 500 {
-			setError(w, accessLogDetails, strings.Join(errMsgs, ","), returnCode, uid.String())
+			setErrors(w, accessLogDetails, errMsgs, returnCode, uid.String())
 			logAsError = true
 			return
 		}

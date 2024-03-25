@@ -1,0 +1,43 @@
+version: "v1"
+test:
+    apps:
+        - name: "carbonapi"
+          binary: "./carbonapi"
+          args:
+              - "-config"
+              - "./cmd/mockbackend/testcases/render_error_refused/carbonapi.yaml"
+              - "-exact-config"
+    queries:
+        - endpoint: "http://127.0.0.1:8081"
+          type: "GET"
+          URL: "/render/?target=a&format=json"
+          expectedResponse:
+              httpCode: 503
+              contentType: "text/plain; charset=utf-8"
+              errBody: "a: connection refused\n"
+        - endpoint: "http://127.0.0.1:8081"
+          type: "GET"
+          URL: "/render/?target=a&target=b&format=json"
+          expectedResponse:
+              httpCode: 503
+              contentType: "text/plain; charset=utf-8"
+              errBody: "a: connection refused\r\nb: connection refused\n"
+
+listeners:
+      - address: ":9070"
+        expressions:
+            "a":
+                pathExpression: "a"
+                data:
+                    - metricName: "a"
+                      values: [0,1,2,2,3]
+
+            # timeout
+            "c":
+                pathExpression: "c"
+                code: 404
+                replyDelayMS: 7000
+
+            "d":
+                pathExpression: "d"
+                code: 503
